@@ -1,0 +1,17 @@
+anyio
+fastapi
+pandas
+pydantic
+pydantic_core
+python-dateutil
+pytz
+six
+sniffio
+SQLAlchemy
+typing-inspection
+typing_extensions
+uvicorn
+psycopg2-binary
+python-dotenv
+alembic
+jinja2

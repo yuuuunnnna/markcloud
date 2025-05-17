@@ -70,11 +70,6 @@ POST /api/trademarks/search
 - `page`: 페이지 번호 (기본값: 1)
 - `page_size`: 페이지 크기 (기본값: 20)
 
-### 상표 상세 조회
-
-```
-GET /api/trademarks/{application_number}
-```
 
 ## 구현 상세
 
@@ -126,7 +121,7 @@ GET /api/trademarks/{application_number}
 1. **검색 기능 강화**
    - 한글 형태소 분석 적용
    - 검색 결과 랭킹 알고리즘 개선
-   - 캐싱 레이어 도입
+   - Elastic search 적용
 
 2. **API 확장**
    - 사용자 인증 및 권한 관리
@@ -136,7 +131,7 @@ GET /api/trademarks/{application_number}
 3. **인프라 개선**
    - 분산 캐싱
    - 로깅 및 모니터링 체계
-   - CI/CD 파이프라인 구축
+
 
 ## 파일 구조
 
@@ -144,17 +139,12 @@ GET /api/trademarks/{application_number}
 markcloud/
 ├── main.py                # FastAPI 애플리케이션
 ├── database.py            # 데이터베이스 설정
-├── models.py              # SQLAlchemy 모델
+├── models.py              # db 테이블 정의
 ├── load_data.py           # 데이터 로드 스크립트
 ├── init-db.sh             # 데이터베이스 초기화 스크립트
-├── init-scripts/          # PostgreSQL 초기화 스크립트
 ├── static/                # 정적 파일
 ├── docker-compose.yml     # Docker 설정
-├── Dockerfile             # Docker 빌드 설정
 └── README.md              # 프로젝트 문서
 ```
 
-## 개발자
-
-- [@yuuuunnnna](https://github.com/yuuuunnnna)
 

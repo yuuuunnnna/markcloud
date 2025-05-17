@@ -13,14 +13,13 @@
 ## 기술 스택
 
 - **Backend**: FastAPI, Python 3.9+
-- **Database**: PostgreSQL 13
-- **ORM**: SQLAlchemy
+- **Database**: PostgreSQL
 - **Search**: PostgreSQL pg_trgm (trigram) 확장
-- **Deployment**: Docker, Docker Compose
+- **Deployment**: Docker
 
 ## 설치 및 실행
 
-### Docker Compose 이용 (권장)
+### Docker Compose 이용
 
 ```bash
 # 서비스 구동

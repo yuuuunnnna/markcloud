@@ -68,22 +68,55 @@ async def main():
     return FileResponse('static/index.html')
 
 
+
+# 검색 응답 모델
+class TrademarkResponse(BaseModel):
+    applicationNumber: str
+    productName: Optional[str]
+    productNameEng: Optional[str]
+    applicationDate: Optional[str]
+    registerStatus: Optional[str]
+    registrationNumber: Optional[List[Optional[str]]]
+    registrationDate: Optional[List[Optional[str]]]
+    asignProductMainCodeList: Optional[List[Optional[str]]]
+    asignProductSubCodeList: Optional[List[Optional[str]]]
+
+    class Config:
+        from_attributes = True
+
+# 페이징 응답 모델
+class PaginatedResponse(BaseModel):
+    items: List[TrademarkResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+@app.get("/")
+async def main():
+    return FileResponse('static/index.html')
+
 # POST 검색 API
 @app.post("/api/trademarks/search", response_model=PaginatedResponse)
-async def search_trademarks_post(search_request: TrademarkSearchRequest, db: Session = Depends(get_db)):
+async def search_trademarks_post(
+    search_request: TrademarkSearchRequest, 
+    db: Session = Depends(get_db)
+):
     query = db.query(Trademark)
 
-    # 키워드 검색
+    # 유사도 , keyword 유무 분기 처리
     if search_request.keyword:
-        keywords = search_request.keyword.strip().split()
-        keyword_conditions = []
-        for keyword in keywords:
-            keyword_condition = or_(
-                func.lower(Trademark.productName).contains(func.lower(keyword)),
-                func.lower(Trademark.productNameEng).contains(func.lower(keyword))
-            )
-            keyword_conditions.append(keyword_condition)
-        query = query.filter(*keyword_conditions)
+        query = query.filter(
+            text("""
+                similarity("productName", :kw) > 0.1
+                OR similarity("productNameEng", :kw) > 0.1
+            """)
+        ).order_by(
+            text("""
+                GREATEST(similarity("productName", :kw), similarity("productNameEng", :kw)) DESC
+            """)
+        ).params(kw=search_request.keyword)
 
     # 등록 상태 필터
     if search_request.register_status:
@@ -91,7 +124,7 @@ async def search_trademarks_post(search_request: TrademarkSearchRequest, db: Ses
             func.lower(Trademark.registerStatus).contains(func.lower(search_request.register_status))
         )
 
-    # 출원일자 범위 필터
+    # 출원일 범위 필터
     if search_request.application_date_from:
         try:
             datetime.strptime(search_request.application_date_from, '%Y%m%d')
@@ -106,16 +139,15 @@ async def search_trademarks_post(search_request: TrademarkSearchRequest, db: Ses
         except ValueError:
             raise HTTPException(status_code=400, detail="종료일자 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.")
 
-    # 메인코드 필터
+    # 상품 분류 메인 코드 필터
     if search_request.main_code:
         query = query.filter(Trademark.asignProductMainCodeList.any(search_request.main_code))
 
-    # 전체 결과 수 계산
+    # 페이징
     total = query.count()
-
-    # 페이지네이션 적용
     skip = (search_request.page - 1) * search_request.page_size
     trademarks = query.offset(skip).limit(search_request.page_size).all()
+
 
     return {
         "items": trademarks,
@@ -126,57 +158,3 @@ async def search_trademarks_post(search_request: TrademarkSearchRequest, db: Ses
     }
 
 
-# GET 검색 API
-@app.get("/api/trademarks", response_model=PaginatedResponse)
-async def search_trademarks(
-    keyword: Optional[str] = Query(None),
-    register_status: Optional[str] = Query(None),
-    application_date_from: Optional[str] = Query(None),
-    application_date_to: Optional[str] = Query(None),
-    main_code: Optional[str] = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db)
-):
-    query = db.query(Trademark)
-
-    if keyword:
-        query = query.filter(
-            or_(
-                Trademark.productName.ilike(f"%{keyword}%"),
-                Trademark.productNameEng.ilike(f"%{keyword}%")
-            )
-        )
-
-    if register_status:
-        query = query.filter(Trademark.registerStatus == register_status)
-
-    if application_date_from:
-        query = query.filter(Trademark.applicationDate >= application_date_from)
-
-    if application_date_to:
-        query = query.filter(Trademark.applicationDate <= application_date_to)
-
-    if main_code:
-        query = query.filter(Trademark.asignProductMainCodeList.any(main_code))
-
-    total = query.count()
-    skip = (page - 1) * page_size
-    trademarks = query.offset(skip).limit(page_size).all()
-
-    return {
-        "items": trademarks,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": (total + page_size - 1) // page_size
-    }
-
-
-# 단건 조회 API
-@app.get("/api/trademarks/{application_number}", response_model=TrademarkResponse)
-async def get_trademark(application_number: str, db: Session = Depends(get_db)):
-    trademark = db.query(Trademark).filter(Trademark.applicationNumber == application_number).first()
-    if not trademark:
-        raise HTTPException(status_code=404, detail="Trademark not found")
-    return trademark

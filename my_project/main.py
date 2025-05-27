@@ -10,7 +10,6 @@ from sqlalchemy import or_, func
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
-
 # 모델 생성
 Base.metadata.create_all(bind=engine)
 
@@ -29,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # 검색 요청 모델
 class TrademarkSearchRequest(BaseModel):
     keyword: Optional[str] = None
@@ -38,36 +38,6 @@ class TrademarkSearchRequest(BaseModel):
     main_code: Optional[str] = None
     page: int = 1
     page_size: int = 20
-
-# 검색 응답 모델
-class TrademarkResponse(BaseModel):
-    applicationNumber: str
-    productName: Optional[str]
-    productNameEng: Optional[str]
-    applicationDate: Optional[str]
-    registerStatus: Optional[str]
-    registrationNumber: Optional[List[str]]
-    registrationDate: Optional[List[str]]
-    asignProductMainCodeList: Optional[List[str]]
-    asignProductSubCodeList: Optional[List[str]]
-
-    class Config:
-        from_attributes = True
-
-# 페이징 응답 모델
-class PaginatedResponse(BaseModel):
-    items: List[TrademarkResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-# 메인 화면
-@app.get("/")
-async def main():
-    return FileResponse('static/index.html')
-
-
 
 # 검색 응답 모델
 class TrademarkResponse(BaseModel):
@@ -156,5 +126,3 @@ async def search_trademarks_post(
         "page_size": search_request.page_size,
         "total_pages": (total + search_request.page_size - 1) // search_request.page_size
     }
-
-

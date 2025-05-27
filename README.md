@@ -57,7 +57,7 @@ uvicorn main:app --reload
 ### 상표 검색
 
 ```
-POST /api/trademarks/search
+POST /api/trademarks
 ```
 
 **요청 파라미터**:
